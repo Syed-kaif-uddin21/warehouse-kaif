@@ -12,6 +12,7 @@ import E6
 import E7
 import E8
 import E9
+from pydantic import BaseModel
 
 app = FastAPI()
 
@@ -22,6 +23,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+class OfferRide(BaseModel):
+    driver_roll: str
+    from_place: str
+    to_place: str
+    ride_date: date
+    depart_time: time
+    total_seats: int
+
+class RideDriver(BaseModel):
+    driver_roll: str
+    ride_id: int
+
+class RideUser(BaseModel):
+    roll_no: str
+    ride_id: int
 
 # --- E1: Get upcoming / filtered rides ---
 @app.get("/get_rides")
@@ -61,58 +78,58 @@ def get_ride(ride_id: Optional[int] = None, id: Optional[int] = None, token = He
 
 # --- E3: Offer a ride ---
 @app.post("/offer_ride")
-def offer_ride(driver_roll: str, from_place: str, to_place: str, ride_date: date, depart_time: time, total_seats: int, token = Header(None)):
+def offer_ride(offer : OfferRide, token = Header(None)):
     username = functions.verify_token(token, "access")
     if username is None:
         raise HTTPException(status_code=401)
     if username["role"] != "driver":
         raise HTTPException(status_code=403, detail="Only driver can offer ride")
-    return E3.offer_ride(driver_roll=driver_roll, from_place=from_place, to_place=to_place, ride_date=ride_date, depart_time=depart_time, total_seats=total_seats)
+    return E3.offer_ride(driver_roll=offer.driver_roll, from_place=offer.from_place, to_place=offer.to_place, ride_date=offer.ride_date, depart_time=offer.depart_time, total_seats=offer.total_seats)
 
 # --- E4: Cancel a ride ---
 @app.patch("/cancel")
-def cancel(ride_id: int, driver_roll: str, token = Header(None)):
+def cancel(canceled : RideDriver , token = Header(None)):
 
     username = functions.verify_token(token, "access")
     if username is None:
         raise HTTPException(status_code=401)
     if username["role"] != "driver":
         raise HTTPException(status_code=403, detail="Only driver can cancel ride")
-    return E4.cancel_ride(ride_id, driver_roll)
+    return E4.cancel_ride(canceled.ride_id, canceled.driver_roll)
 
 # --- E5: Join a ride ---
 @app.post("/book_ride")
-def book_ride(ride_id: int, roll_no: str, token = Header(None)):
+def book_ride(book : RideUser, token = Header(None)):
 
     username = functions.verify_token(token, "access")
     if username is None:
         raise HTTPException(status_code=401)
 
-    if ride_id < 1:
+    if book.ride_id < 1:
         raise HTTPException(status_code=400, detail="Ride id must be greater than 0")
-    return E5.join_ride(ride_id, roll_no)
+    return E5.join_ride(book.ride_id, book.roll_no)
 
 # --- E6: Leave a ride ---
 @app.patch("/ride")
-def leave_ride(ride_id: int, roll_no: str, token = Header(None)):
+def leave_ride(leave : RideUser, token = Header(None)):
 
     username = functions.verify_token(token, "access")
     if username is None:
         raise HTTPException(status_code=401)
 
-    if ride_id < 1:
+    if leave.ride_id < 1:
         raise HTTPException(status_code=400, detail="Ride id must be greater than 0")
-    return E6.leave_ride(ride_id, roll_no)
+    return E6.leave_ride(leave.ride_id, leave.roll_no)
 
 # --- E7: Mark a ride completed ---
 @app.patch("/complete_ride")
-def complete_ride(driver_roll: str, ride_id: int, token = Header(None)):
+def complete_ride(complete : RideDriver, token = Header(None)):
     username = functions.verify_token(token, "access")
     if username is None:
         raise HTTPException(status_code=401)
     if username["role"] != "driver":
         raise HTTPException(status_code=403, detail="Only driver can complete ride")
-    return E7.complete_ride(driver_roll, ride_id)
+    return E7.complete_ride(complete.driver_roll, complete.ride_id)
 
 # --- E8: Get a student's rides ---
 @app.get("/student_rides")
