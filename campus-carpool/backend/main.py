@@ -65,6 +65,8 @@ def offer_ride(driver_roll: str, from_place: str, to_place: str, ride_date: date
     username = functions.verify_token(token, "access")
     if username is None:
         raise HTTPException(status_code=401)
+    if username["role"] != "driver":
+        raise HTTPException(status_code=403, detail="Only driver can offer ride")
     return E3.offer_ride(driver_roll=driver_roll, from_place=from_place, to_place=to_place, ride_date=ride_date, depart_time=depart_time, total_seats=total_seats)
 
 # --- E4: Cancel a ride ---
@@ -74,6 +76,8 @@ def cancel(ride_id: int, driver_roll: str, token = Header(None)):
     username = functions.verify_token(token, "access")
     if username is None:
         raise HTTPException(status_code=401)
+    if username["role"] != "driver":
+        raise HTTPException(status_code=403, detail="Only driver can cancel ride")
     return E4.cancel_ride(ride_id, driver_roll)
 
 # --- E5: Join a ride ---
@@ -106,6 +110,8 @@ def complete_ride(driver_roll: str, ride_id: int, token = Header(None)):
     username = functions.verify_token(token, "access")
     if username is None:
         raise HTTPException(status_code=401)
+    if username["role"] != "driver":
+        raise HTTPException(status_code=403, detail="Only driver can complete ride")
     return E7.complete_ride(driver_roll, ride_id)
 
 # --- E8: Get a student's rides ---
